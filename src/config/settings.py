@@ -19,5 +19,15 @@ class Settings:
 
     PIPELINE_ENV: str = os.getenv("PIPELINE_ENV", "dev")
 
+    FINOPS_PREFIX: str = os.getenv("FINOPS_PREFIX", "bronze/")
+
+    FINOPS_TRANSICAO_IA_DIAS: int = int(
+        os.getenv("FINOPS_TRANSICAO_IA_DIAS", "30")
+    )
+
+    FINOPS_TRANSICAO_GLACIER_DIAS: int = int(
+        os.getenv("FINOPS_TRANSICAO_GLACIER_DIAS", "90")
+    )
+
 
 settings = Settings()

@@ -274,24 +274,103 @@ O produtor publica eventos em um tópico; o consumidor grava na Bronze em parti�
 📄 *Aprofundamento:* [desenho do produtor, formato do evento e consumo](docs/arquitetura/) ⏳
 
 ---
-
 ## 9. Observabilidade e monitoramento
 
-| O que monitoramos | Como | Por quê |
-|---|---|---|
-| Sucesso/falha de cada etapa | Logging estruturado em JSON | Rastrear onde a pipeline quebrou |
-| Volume processado por camada | Contagem de registros entrada/saída | Detectar perda silenciosa |
-| Latência de execução | Tempo por etapa | Identificar degradação e gargalos |
-| Taxa de reprovação em qualidade | Métrica por regra | Perceber mudança na fonte |
-| Custo acumulado | Métrica FinOps | Evitar surpresa na fatura |
+A observabilidade acompanha a execução da pipeline, identifica falhas e produz evidências para auditoria. A implementação combina logs estruturados, manifestos de execução, validações de qualidade e auditoria do bucket S3.
 
-**O alerta mais importante não é o de falha — é o de sucesso anômalo.** Uma pipeline que roda sem erro mas processa metade dos registros da execução anterior é mais perigosa do que uma que quebra, porque entrega um dashboard com números plausíveis e errados. Ninguém investiga o que não deu erro. Por isso a contagem de registros por camada é métrica de primeira ordem, com faixa esperada e alerta próprio.
+| O que monitoramos            | Como                                                   | Status         |
+| ---------------------------- | ------------------------------------------------------ | -------------- |
+| Sucesso ou falha da ingestão | Logs estruturados em JSON                              | ✅ Implementado |
+| Volume processado            | Quantidade de tabelas, linhas e bytes                  | ✅ Implementado |
+| Tempo de execução            | Horários de início e término e duração total           | ✅ Implementado |
+| Erros da pipeline            | Status e mensagem de erro registrados no manifesto     | ✅ Implementado |
+| Qualidade dos dados          | Great Expectations na Bronze e regras Q1–Q8 na Silver  | ✅ Implementado |
+| Segurança do S3              | Auditoria de criptografia e bloqueio de acesso público | ✅ Implementado |
+| Lifecycle                    | Verificação automática das regras de armazenamento     | ✅ Implementado |
+| Métricas dos Jobs Glue       | Métricas e logs contínuos no CloudWatch                | ✅ Configurado  |
+| Alertas automáticos          | CloudWatch Alarms e notificações                       | ⏳ Planejado    |
 
-**Otimização.** Os tempos por etapa alimentam decisões concretas de tuning: estratégia de particionamento, colunas efetivamente lidas nas consultas Athena e paralelização das extrações independentes entre si.
+### Logs e manifestos de execução
 
-📄 *Aprofundamento:* [runbook operacional, catálogo de alertas e métricas](docs/monitoramento/) ⏳
+O módulo `src/governance/observabilidade.py` cria um identificador único para cada execução e registra:
+
+* horário de início e término;
+* duração total;
+* tabelas processadas;
+* quantidade de linhas;
+* volume em bytes;
+* status de sucesso ou falha;
+* mensagem de erro, quando aplicável.
+
+O resultado é salvo em:
+
+```text
+reports/governance/execucao-<id>.json
+```
+
+O manifesto permite comparar execuções e investigar falhas sem depender apenas das mensagens apresentadas no terminal.
+
+### Auditoria do bucket S3
+
+O módulo `src/governance/auditoria_s3.py` realiza uma auditoria somente leitura no bucket configurado no `.env`.
+
+A auditoria verifica:
+
+* criptografia dos dados em repouso;
+* bloqueio de acesso público;
+* status do versionamento;
+* existência das regras de lifecycle.
+
+Execução:
+
+```bash
+python -m src.governance.auditoria_s3
+```
+
+O resultado é salvo em:
+
+```text
+reports/governance/auditoria-s3.json
+```
+
+Na execução de validação, foram obtidos os seguintes resultados:
+
+```text
+[CONFORME] criptografia_em_repouso
+[CONFORME] bloqueio_acesso_publico
+[INFORMATIVO] versionamento: Disabled
+[CONFORME] lifecycle_finops: 2 regras encontradas
+```
+
+O versionamento desativado foi registrado como informativo, e não como falha, porque sua ativação aumenta o volume armazenado e deve ser uma decisão conjunta de Governança e FinOps.
+
+### Validação automatizada
+
+Os testes automatizados verificam:
+
+* criação do manifesto de execução;
+* contagem de objetos e bytes;
+* cálculo da estimativa de armazenamento;
+* validação dos períodos do lifecycle;
+* preservação de regras criadas por outras pessoas;
+* atualização das regras FinOps sem duplicação.
+
+Execução:
+
+```bash
+python -m pytest -q
+```
+
+Resultado obtido:
+
+```text
+8 passed
+```
+
+📄 *Aprofundamento:* [Governança e FinOps](docs/governanca-finops.md)
 
 ---
+
 
 ## 10. FinOps — custo e otimização
 

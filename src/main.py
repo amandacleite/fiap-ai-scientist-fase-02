@@ -1,6 +1,7 @@
 from ingestion.extract import extract_table
 from ingestion.writer import save_parquet
 from cloud.s3 import upload_file
+from governance.observabilidade import MonitorExecucao
 
 
 TABLES = [

@@ -14,4 +14,8 @@ python-dotenv==1.2.2
 db-dtypes==1.4.3
 
 # Dependências futuras (Silver/Gold)
+boto3==1.43.60
+python-dotenv==1.2.2
+great-expectations>=1.8,<2
+
 # pydantic-settings
