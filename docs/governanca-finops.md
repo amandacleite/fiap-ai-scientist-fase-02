@@ -106,4 +106,3 @@ O versionamento desativado foi classificado como informativo, e não como falha,
 * A política de lifecycle não é aplicada automaticamente.
 * O relatório não armazena credenciais, tokens ou conteúdo dos registros.
 * As credenciais do AWS Academy são temporárias e nunca devem ser publicadas no Git.
-* Alertas automáticos com CloudWatch Alarms permanecem como evolução futura.
